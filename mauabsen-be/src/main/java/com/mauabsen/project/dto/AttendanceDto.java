@@ -36,4 +36,12 @@ public class AttendanceDto {
             .updatedAt(attendance.getUpdated_at())
             .build();
     }
+
+    public String getEmployeeName() {
+        return employeeName;
+    }
+
+    public void setEmployeeName(String employeeName) {
+        this.employeeName = employeeName;
+    }
 }

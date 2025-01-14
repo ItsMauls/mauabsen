@@ -35,6 +35,7 @@ import javax.net.ssl.*;
 import java.security.cert.X509Certificate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @Transactional
@@ -110,9 +111,11 @@ public class AttendanceService {
 
         // Check if already clocked in today
         LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
-        if (attendanceRepository.findByEmployeeIdAndDate(employee.getId().intValue(), today).isPresent()) {
-            throw new RuntimeException("Already clocked in today");
-        }
+        attendanceRepository.findByEmployeeIdAndDate(employee.getId().intValue(), today)
+            .ifPresent(a -> {
+                throw new RuntimeException("You have already clocked in today at " + 
+                    a.getTime_in().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+            });
 
         // Create new attendance
         Attendances attendance = Attendances.builder()
@@ -125,10 +128,11 @@ public class AttendanceService {
 
         AttendanceDto dto = AttendanceDto.fromEntity(attendanceRepository.save(attendance));
         dto.setMatchScore(matchScore);
+        dto.setEmployeeName(kyc.getFirst_name() + " " + kyc.getLast_name());
         return dto;
     }
 
-    public AttendanceDto clockOut(String fingerprintTemplate) {
+    public AttendanceDto clockOut(String fingerprintTemplate, int matchScore) {
         // Get current logged in employee
         Employees employee = getCurrentEmployee();
         System.out.println("\n=== Clock Out Attempt ===");
@@ -140,21 +144,16 @@ public class AttendanceService {
             throw new RuntimeException("No fingerprint registered for this employee");
         }
 
-        // Verifikasi fingerprint
-        int matchScore = matchFingerprint(
-            fingerprintTemplate, 
-            kyc.getFingerprint_id()
-        );
-
-        if (matchScore < 100) {
-            System.out.println("Verification failed: Score too low (" + matchScore + ")");
-            throw new RuntimeException("Fingerprint does not match. Score: " + matchScore);
-        }
-
         // Get today's attendance
         LocalDateTime today = LocalDate.now().atStartOfDay();
         Attendances attendance = attendanceRepository.findByEmployeeIdAndDate(employee.getId().intValue(), today)
-            .orElseThrow(() -> new RuntimeException("No clock-in record found"));
+            .orElseThrow(() -> new RuntimeException("You haven't clocked in today yet"));
+
+        // Check if already clocked out
+        if (attendance.getTime_out() != null) {
+            throw new RuntimeException("You have already clocked out today at " + 
+                attendance.getTime_out().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+        }
 
         // Update attendance
         attendance.setTime_out(LocalDateTime.now());
@@ -162,6 +161,7 @@ public class AttendanceService {
         
         AttendanceDto dto = AttendanceDto.fromEntity(attendanceRepository.save(attendance));
         dto.setMatchScore(matchScore);
+        dto.setEmployeeName(kyc.getFirst_name() + " " + kyc.getLast_name());
         return dto;
     }
 

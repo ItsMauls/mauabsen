@@ -98,9 +98,10 @@ public class EmployeeController {
     @PostMapping("/verify-fingerprint")
     public ResponseEntity<Map<String, String>> verifyFingerprint(@RequestBody Map<String, Object> request) {
         String fingerprintTemplate = (String) request.get("fingerprintTemplate");
+        int matchScore = Integer.parseInt(request.get("matchScore").toString());
         
-        // Use AttendanceService to handle clock in which includes fingerprint verification
-        AttendanceDto attendanceResult = attendanceService.clockIn(fingerprintTemplate);
+        // Updated to pass both parameters
+        AttendanceDto attendanceResult = attendanceService.clockIn(fingerprintTemplate, matchScore);
         
         // If we get here, verification was successful
         Employees employee = getCurrentEmployee();
