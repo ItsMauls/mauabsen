@@ -12,22 +12,28 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.Column;
+import jakarta.persistence.Table;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Entity
+@Table(name = "employee_kycs")
 public class EmployeeKycs {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Integer employee_id;
+    @Column(length = 1000)
     private String address;
     private String first_name;
     private String last_name;
+    @Column(columnDefinition = "TEXT")
     private String fingerprint_id;
+    @Column(length = 1000)
     private String photo_url;
     private String status;
     private LocalDateTime created_at;
@@ -36,5 +42,11 @@ public class EmployeeKycs {
     @OneToOne
     @JoinColumn(name = "employee_id", insertable = false, updatable = false)
     private Employees employee;
+
+    @Column(columnDefinition = "TEXT")
+    private String physical_fingerprint;
+    
+    @Column(columnDefinition = "TEXT")
+    private String device_fingerprint;
 }
 

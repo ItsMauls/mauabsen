@@ -22,6 +22,7 @@ public class AttendanceDto {
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Integer matchScore;
 
     public static AttendanceDto fromEntity(Attendances attendance) {
         return AttendanceDto.builder()

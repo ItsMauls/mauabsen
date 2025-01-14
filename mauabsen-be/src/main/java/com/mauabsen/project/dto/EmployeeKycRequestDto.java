@@ -8,6 +8,6 @@ public class EmployeeKycRequestDto {
     private String address;
     private String firstName;
     private String lastName;
-    private String fingerprintId;  // dari device fingerprint
+    private String fingerprintId;  // Ubah nama field sesuai dengan yang digunakan
     private String photoUrl;
 } 

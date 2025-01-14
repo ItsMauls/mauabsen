@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import FingerprintScanner from '../components/FingerprintScanner.vue'
 
 const employees = ref([])
 const loading = ref(false)
@@ -21,7 +22,7 @@ const kycData = ref({
   lastName: '',
   address: '',
   fingerprintId: '',
-  photoUrl: ''
+  photoUrl: `https://ui-avatars.com/api/?name=User&background=random`
 })
 
 const loadEmployees = async () => {
@@ -62,12 +63,22 @@ const openKycModal = (employee) => {
     lastName: '',
     address: '',
     fingerprintId: '',
-    photoUrl: ''
+    photoUrl: `https://ui-avatars.com/api/?name=User&background=random`
   }
+}
+
+const handleFingerprintCapture = (fingerprintTemplate) => {
+  kycData.value.fingerprintId = fingerprintTemplate
 }
 
 const registerKyc = async () => {
   try {
+    if (!kycData.value.photoUrl) {
+      kycData.value.photoUrl = `https://ui-avatars.com/api/?name=${
+        encodeURIComponent(kycData.value.firstName + ' ' + kycData.value.lastName)
+      }&background=random`
+    }
+
     await axios.post(`/api/employees/${selectedEmployee.value.id}/kyc`, {
       employeeId: selectedEmployee.value.id,
       ...kycData.value
@@ -233,24 +244,10 @@ onMounted(() => {
             ></textarea>
           </div>
           <div>
-            <label for="fingerprintId" class="block text-sm font-medium text-gray-700">Fingerprint ID</label>
-            <input
-              type="text"
-              id="fingerprintId"
-              v-model="kycData.fingerprintId"
-              required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            >
-          </div>
-          <div>
-            <label for="photoUrl" class="block text-sm font-medium text-gray-700">Photo URL</label>
-            <input
-              type="url"
-              id="photoUrl"
-              v-model="kycData.photoUrl"
-              required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            >
+            <label class="block text-sm font-medium text-gray-700">Fingerprint</label>
+            <FingerprintScanner 
+              :onCapture="handleFingerprintCapture" 
+            />
           </div>
           <div class="flex justify-end space-x-3">
             <button

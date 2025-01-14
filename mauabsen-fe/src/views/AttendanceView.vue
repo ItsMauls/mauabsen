@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import AttendanceScanner from '../components/AttendanceScanner.vue'
 
 const attendances = ref([])
 const loading = ref(false)
@@ -64,33 +65,15 @@ const openFingerprintModal = (type) => {
   showFingerprintModal.value = true
 }
 
-const handleAttendance = async () => {
-  try {
-    loading.value = true
-    error.value = null
-
-    if (actionType.value === 'in') {
-      await axios.post('/api/attendances/clock-in', null, {
-        params: { fingerprintId: fingerprintId.value }
-      })
-    } else {
-      await axios.post('/api/attendances/clock-out', null, {
-        params: { fingerprintId: fingerprintId.value }
-      })
-    }
-    
+const handleAttendanceResult = (result) => {
+  if (result) {
     showFingerprintModal.value = false
-    // Reload based on current filter state
+    // Reload data setelah berhasil clock in/out
     if (dateRange.value.startDate && dateRange.value.endDate) {
-      await loadAttendancesByRange()
+      loadAttendancesByRange()
     } else {
-      await loadAllAttendances()
+      loadAllAttendances()
     }
-  } catch (err) {
-    error.value = `Failed to clock ${actionType.value}: ` + (err.response?.data?.message || err.message)
-    console.error(`Error clocking ${actionType.value}:`, err)
-  } finally {
-    loading.value = false
   }
 }
 
@@ -247,20 +230,18 @@ onMounted(() => {
             </svg>
           </button>
         </div>
-        <form @submit.prevent="handleAttendance" class="space-y-4">
-          <div>
-            <label for="fingerprintId" class="block text-sm font-medium text-gray-700">
-              Fingerprint ID
-            </label>
-            <input
-              type="text"
-              id="fingerprintId"
-              v-model="fingerprintId"
-              required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="Enter your fingerprint ID"
-            >
-          </div>
+        
+        <div class="space-y-4">
+          <AttendanceScanner 
+            v-if="actionType === 'in'"
+            @success="handleAttendanceResult"
+            ref="scannerRef"
+          />
+          <AttendanceScanner 
+            v-else
+            @success="handleAttendanceResult"
+            ref="scannerRef"
+          />
           <div class="flex justify-end space-x-3">
             <button
               type="button"
@@ -269,14 +250,8 @@ onMounted(() => {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              class="rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              Submit
-            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
 

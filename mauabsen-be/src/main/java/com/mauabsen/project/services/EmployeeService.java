@@ -8,6 +8,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Base64;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import com.mauabsen.project.dto.EmployeeDto;
 import com.mauabsen.project.repositories.EmployeeRepository;
@@ -15,6 +18,8 @@ import com.mauabsen.project.exceptions.NotFoundException;
 import com.mauabsen.project.models.Employees;
 import com.mauabsen.project.dto.EmployeeKycRequestDto;
 import com.mauabsen.project.models.EmployeeKycs;
+import com.mauabsen.project.models.Attendance;
+import com.mauabsen.project.repositories.AttendanceRepository;
 
 @Service
 @Transactional
@@ -26,11 +31,8 @@ public class EmployeeService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public EmployeeDto findByUsername(String username) {
-        return employeeRepository.findByUsername(username)
-        .map(EmployeeDto::fromEntity)
-        .orElseThrow(() -> new NotFoundException("Employee not found"));
-    }
+    @Autowired
+    private AttendanceRepository attendanceRepository;
 
     public EmployeeDto createEmployee(EmployeeDto employeeDto) {
         // Validasi business logic
@@ -90,34 +92,66 @@ public class EmployeeService {
             .build();
 
         employee.setEmployeeKycs(kyc);
-        Employees updatedEmployee = employeeRepository.save(employee);
+        kyc.setEmployee(employee);
         
+        Employees updatedEmployee = employeeRepository.save(employee);
         return EmployeeDto.fromEntity(updatedEmployee);
     }
 
-    public EmployeeDto registerFingerprint(Long employeeId, String fingerprintId) {
-        Employees employee = employeeRepository.findById(employeeId)
+    public EmployeeDto registerFingerprint(Long id, String fingerprintTemplate) {
+        Employees employee = employeeRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Employee not found"));
 
+        // Normalize the template before storing
+        String normalizedTemplate = normalizeTemplate(fingerprintTemplate);
+        
         EmployeeKycs kyc = employee.getEmployeeKycs();
         if (kyc == null) {
             kyc = new EmployeeKycs();
-            kyc.setEmployee_id(employeeId.intValue());
-            kyc.setCreated_at(LocalDateTime.now());
+            kyc.setEmployee_id(employee.getId().intValue());
+            kyc.setEmployee(employee);
         }
-
-        kyc.setFingerprint_id(fingerprintId);
+        
+        kyc.setFingerprint_id(normalizedTemplate);
         kyc.setUpdated_at(LocalDateTime.now());
-
+        
         employee.setEmployeeKycs(kyc);
-        Employees updatedEmployee = employeeRepository.save(employee);
+        employeeRepository.save(employee);
+        
+        return EmployeeDto.fromEntity(employee);
+    }
 
-        return EmployeeDto.fromEntity(updatedEmployee);
+    private String normalizeTemplate(String template) {
+        try {
+            // First try to decode - if it's Base64 encoded
+            byte[] decoded = Base64.getDecoder().decode(template);
+            // Re-encode to ensure consistent format
+            return Base64.getEncoder().encodeToString(decoded);
+        } catch (IllegalArgumentException e) {
+            // If decoding fails, template might already be in raw format
+            return template;
+        }
     }
 
     public List<EmployeeDto> getAllEmployees() {
         return employeeRepository.findAll().stream()
             .map(EmployeeDto::fromEntity)
             .collect(Collectors.toList());
+    }
+
+    public Employees findByUsername(String username) {
+        return employeeRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Employee not found"));
+    }
+
+    public void logAttendance(Employees employee) {
+        // Create attendance record
+        Attendance attendance = Attendance.builder()
+            .employee(employee)
+            .checkInTime(LocalDateTime.now())
+            .status("PRESENT")
+            .build();
+        
+        attendanceRepository.save(attendance);
     }
 }
