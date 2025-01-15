@@ -18,7 +18,7 @@ import com.mauabsen.project.exceptions.NotFoundException;
 import com.mauabsen.project.models.Employees;
 import com.mauabsen.project.dto.EmployeeKycRequestDto;
 import com.mauabsen.project.models.EmployeeKycs;
-import com.mauabsen.project.models.Attendance;
+// import com.mauabsen.project.models.Attendance;
 import com.mauabsen.project.repositories.AttendanceRepository;
 
 @Service
@@ -32,7 +32,7 @@ public class EmployeeService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private AttendanceRepository attendanceRepository;
+    // private AttendanceRepository attendanceRepository;
 
     public EmployeeDto createEmployee(EmployeeDto employeeDto) {
         // Validasi business logic
@@ -144,14 +144,14 @@ public class EmployeeService {
             .orElseThrow(() -> new RuntimeException("Employee not found"));
     }
 
-    public void logAttendance(Employees employee) {
-        // Create attendance record
-        Attendance attendance = Attendance.builder()
-            .employee(employee)
-            .checkInTime(LocalDateTime.now())
-            .status("PRESENT")
-            .build();
+    // public void logAttendance(Employees employee) {
+    //     // Create attendance record
+    //     Attendance attendance = Attendance.builder()
+    //         .employee(employee)
+    //         .checkInTime(LocalDateTime.now())
+    //         .status("PRESENT")
+    //         .build();
         
-        attendanceRepository.save(attendance);
-    }
+    //     attendanceRepository.save(attendance);
+    // }
 }
